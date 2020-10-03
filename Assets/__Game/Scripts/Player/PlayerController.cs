@@ -7,31 +7,35 @@ public class PlayerController : MonoBehaviour
 {
     #region Variables
 
-    [Header("Locomotion Direct")]
-    [SerializeField] private float _walkSpeed = 6f;
-    [SerializeField] private float _jumpHeight = 8f;
-    [SerializeField] private float _wallJumpHeight = 1.5f;
-    [Header("Locomotion Indirect ")]
-    [SerializeField] private float _gravity = 20f;
-    [Tooltip("Controls the factor by which the jump height will reduce when the player let's up the jump button.")]
-    [SerializeField] private float _jumpButtonReleaseAttentuationFactor = 0.5f;
-    [SerializeField] private float _coyoteTime = 0.5f;
+    [Header("Locomotion Variables")]
+    [SerializeField] float _walkSpeed = 6f;
+    [SerializeField] float _jumpHeight = 8f;
+    [SerializeField] float _wallJumpHeight = 1.5f;
 
+    [Header("Locomotion Affectors")]
+    [SerializeField] float _gravity = 20f;
+    [Tooltip("Controls the factor by which the jump height will reduce when the player let's up the jump button.")]
+    [SerializeField] float _jumpButtonReleaseAttentuationFactor = 0.5f;
+    [SerializeField] float _coyoteTimeDuration = 0.5f;
+    [SerializeField] float _slopeSlideSpeed = 4f;
 
     //Cache Components
-    private CharacterController2D _characterController2D = null;
+    CharacterController2D _characterController2D = null;
 
-    //Internal
-    private CharacterController2D.CharacterCollisionState2D _collisionStateFlag;
+    //Internals
+    CharacterController2D.CharacterCollisionState2D _collisionStateFlag;
 
-    private bool _isGrounded = true;
-    private bool _isJumping = false;
-    private bool _isWallJumping = false;
-    private bool _isCoyoteTime = true;
+    bool _isGrounded = true;
+    bool _isJumping = false;
+    bool _isWallJumping = false;
+    bool _isCoyoteTime = true;
+    bool _isSlopeSliding = false;
 
     float _coyoteTimeCounter = 0f;
+    float _slopeAngle = 0f;
 
-    private Vector3 _movementDirection = Vector3.zero;
+    Vector3 _movementDirection = Vector3.zero;
+    Vector3 _slopeGradient = Vector3.zero;
 
     #endregion
 
@@ -61,9 +65,11 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
+    #region Movement/Locomotion Functions
+
     private void Locomotion()
     {
-        ProcessBasicInputs();
+        ProcessLocomotionInputs();
 
         if (_movementDirection.x > Mathf.Epsilon)
             transform.eulerAngles = new Vector3(0, 0, 0);
@@ -84,7 +90,7 @@ public class PlayerController : MonoBehaviour
                 _coyoteTimeCounter = Time.time;
                 _isCoyoteTime = true;
             }
-            else if (Mathf.Abs(Time.time - _coyoteTimeCounter) > _coyoteTime) 
+            else if (Mathf.Abs(Time.time - _coyoteTimeCounter) > _coyoteTimeDuration) 
             {
                 _isCoyoteTime = false;
             }
@@ -107,7 +113,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void ProcessBasicInputs()
+    private void ProcessLocomotionInputs()
     {
         _movementDirection.x = Input.GetAxis("Horizontal");
         _movementDirection.x *= _walkSpeed;
@@ -119,19 +125,11 @@ public class PlayerController : MonoBehaviour
             _isWallJumping = false;
             _isCoyoteTime = false;
 
-            if (Input.GetButtonDown("Jump"))
-            {
-                _movementDirection.y = _jumpHeight;
-                _isJumping = true;
-            }
+            ProcessJump();
         }
         else if (_isCoyoteTime) //Coyote Time!
         {
-            if (Input.GetButtonDown("Jump"))
-            {
-                _movementDirection.y = _jumpHeight;
-                _isJumping = true;
-            }
+            ProcessJump();
         }
         else //Player is in the air
         {
@@ -140,6 +138,15 @@ public class PlayerController : MonoBehaviour
                 if (_movementDirection.y > Mathf.Epsilon)
                     _movementDirection.y *= _jumpButtonReleaseAttentuationFactor;
             }
+        }
+    }
+
+    private void ProcessJump()
+    {
+        if (Input.GetButtonDown("Jump"))
+        {
+            _movementDirection.y = _jumpHeight;
+            _isJumping = true;
         }
     }
 
@@ -152,5 +159,5 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
+    #endregion
 }
