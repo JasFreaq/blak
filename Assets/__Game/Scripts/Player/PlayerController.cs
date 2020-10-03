@@ -7,16 +7,16 @@ public class PlayerController : MonoBehaviour
 {
     #region Variables
 
-    [Header("Base Locomotion")]
+    [Header("Locomotion Direct")]
     [SerializeField] private float _walkSpeed = 6f;
     [SerializeField] private float _jumpHeight = 8f;
+    [SerializeField] private float _wallJumpHeight = 1.5f;
+    [Header("Locomotion Indirect ")]
+    [SerializeField] private float _gravity = 20f;
     [Tooltip("Controls the factor by which the jump height will reduce when the player let's up the jump button.")]
     [SerializeField] private float _jumpButtonReleaseAttentuationFactor = 0.5f;
-    [SerializeField] private float _gravity = 20f;
-    [Header("Wall Jump")]
-    [SerializeField] private Vector2 _wallJumpAmounts = new Vector2(0.5f, 1.5f);
-    [SerializeField] private float _timeBetweenWallJumps = 0.5f;
-    [SerializeField] private float _wallGrabTimeLimit = 3f;
+    [SerializeField] private float _coyoteTime = 0.5f;
+
 
     //Cache Components
     private CharacterController2D _characterController2D = null;
@@ -26,8 +26,10 @@ public class PlayerController : MonoBehaviour
 
     private bool _isGrounded = true;
     private bool _isJumping = false;
-    private bool _justWallJumped = false;
-    private bool _isWallGrabbed = false;
+    private bool _isWallJumping = false;
+    private bool _isCoyoteTime = true;
+
+    float _coyoteTimeCounter = 0f;
 
     private Vector3 _movementDirection = Vector3.zero;
 
@@ -47,31 +49,89 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        Locomotion();
-        print(_collisionStateFlag.right);
+        if (_characterController2D)
+        {
+            Locomotion();
+        }
+        else
+        {
+            Debug.LogError("PlayerController is missing CharacterController2D.");
+        }
     }
 
     #endregion
 
     private void Locomotion()
     {
-        if (!_justWallJumped)
+        ProcessBasicInputs();
+
+        if (_movementDirection.x > Mathf.Epsilon)
+            transform.eulerAngles = new Vector3(0, 0, 0);
+        else if (_movementDirection.x < -Mathf.Epsilon)
+            transform.eulerAngles = new Vector3(0, 180, 0);
+        _movementDirection.y -= _gravity * Time.deltaTime;
+
+        //Move
+        _characterController2D.move(_movementDirection * Time.deltaTime);
+
+        //Update Flags
+        _collisionStateFlag = _characterController2D.collisionState;
+        _isGrounded = _collisionStateFlag.below;
+        if (!_isGrounded && !_isJumping)
         {
-            _movementDirection.x = Input.GetAxis("Horizontal");
-            _movementDirection.x *= _walkSpeed;
+            if (Mathf.Abs(_coyoteTimeCounter) < Mathf.Epsilon)
+            {
+                _coyoteTimeCounter = Time.time;
+                _isCoyoteTime = true;
+            }
+            else if (Mathf.Abs(Time.time - _coyoteTimeCounter) > _coyoteTime) 
+            {
+                _isCoyoteTime = false;
+            }
         }
+        else
+        {
+            _coyoteTimeCounter = 0f;
+            _isCoyoteTime = false;
+        }
+
+        //Clear upward movement when upward path is blocked
+        if (_collisionStateFlag.above)
+        {
+            _movementDirection.y = 0;
+        }
+
+        if (_collisionStateFlag.right || _collisionStateFlag.left)
+        {
+            ProcessWallJumpAndInput();
+        }
+    }
+
+    private void ProcessBasicInputs()
+    {
+        _movementDirection.x = Input.GetAxis("Horizontal");
+        _movementDirection.x *= _walkSpeed;
 
         if (_isGrounded)
         {
             _movementDirection.y = 0;
             _isJumping = false;
+            _isWallJumping = false;
+            _isCoyoteTime = false;
 
             if (Input.GetButtonDown("Jump"))
             {
                 _movementDirection.y = _jumpHeight;
                 _isJumping = true;
             }
-
+        }
+        else if (_isCoyoteTime) //Coyote Time!
+        {
+            if (Input.GetButtonDown("Jump"))
+            {
+                _movementDirection.y = _jumpHeight;
+                _isJumping = true;
+            }
         }
         else //Player is in the air
         {
@@ -81,85 +141,16 @@ public class PlayerController : MonoBehaviour
                     _movementDirection.y *= _jumpButtonReleaseAttentuationFactor;
             }
         }
-
-        if (_movementDirection.x > Mathf.Epsilon)
-            transform.eulerAngles = new Vector3(0, 0, 0);
-        else if (_movementDirection.x < -Mathf.Epsilon)
-            transform.eulerAngles = new Vector3(0, 180, 0);
-
-        if (!_isWallGrabbed)
-            _movementDirection.y -= _gravity * Time.deltaTime;
-
-        if (!_characterController2D)
-        {
-            Debug.LogError("PlayerController is missing CharacterController2D.");
-            return;
-        }
-
-        _characterController2D.move(_movementDirection * Time.deltaTime);
-        _collisionStateFlag = _characterController2D.collisionState;
-
-        _isGrounded = _collisionStateFlag.below;
-        if (_isGrounded)
-            _isWallGrabbed = false;
-
-        if (_collisionStateFlag.above)
-        {
-            _movementDirection.y = 0;
-        }
-
-        if ((_collisionStateFlag.right || _collisionStateFlag.left) && !_isGrounded) 
-        {
-            if (Input.GetButtonDown("Jump") && !_justWallJumped)
-            {
-                ProcessWallJump();
-            }
-            else if (Input.GetButton("Grab"))
-            {
-                if (!_isWallGrabbed)
-                    StartCoroutine(ProcessWallGrabRoutine());
-            }
-        }
     }
 
-    private void ProcessWallJump()
+    private void ProcessWallJumpAndInput()
     {
-        if (_movementDirection.x > Mathf.Epsilon)
+        if (!_isGrounded && Input.GetButtonDown("Jump") && !_isWallJumping) 
         {
-            _movementDirection.x = -_jumpHeight * _wallJumpAmounts.x;
-            _movementDirection.y = _jumpHeight * _wallJumpAmounts.y;
+            _movementDirection.y = _jumpHeight * _wallJumpHeight;
+            _isWallJumping = true;
         }
-        else if (_movementDirection.x < -Mathf.Epsilon)
-        {
-            _movementDirection.x = _jumpHeight * _wallJumpAmounts.x;
-            _movementDirection.y = _jumpHeight * _wallJumpAmounts.y;
-        }
-
-        StartCoroutine(WallJumpTimerRoutine());
     }
 
-    IEnumerator WallJumpTimerRoutine()
-    {
-        _justWallJumped = true;
-        yield return new WaitForSeconds(_timeBetweenWallJumps);
-        _justWallJumped = false;
-    }
 
-    IEnumerator ProcessWallGrabRoutine()
-    {
-        _isWallGrabbed = true;
-        _movementDirection.y = 0;
-
-        float timeCounter = _wallGrabTimeLimit;
-        while (timeCounter > Mathf.Epsilon)
-        {
-            if (Input.GetButtonUp("Grab") || !(_collisionStateFlag.right || _collisionStateFlag.left))
-                break;
-
-            yield return null;
-            timeCounter -= Time.deltaTime;
-        }
-
-        _isWallGrabbed = false;
-    }
 }
