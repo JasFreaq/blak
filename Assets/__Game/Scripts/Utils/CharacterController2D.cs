@@ -107,7 +107,7 @@ namespace Prime31
 		/// </summary>
 		/// <value>The slope limit.</value>
 		[Range(0f, 90f)]
-		public float slopeLimit = 30f;
+		float _slopeLimit = 30f;
 
 		/// <summary>
 		/// the threshold in the change in vertical movement between frames that constitutes jumping
@@ -157,10 +157,10 @@ namespace Prime31
 		#endregion
 
 
-		/// <summary>
-		/// holder for our raycast origin corners (TR, TL, BR, BL)
-		/// </summary>
-		CharacterRaycastOrigins _raycastOrigins;
+        /// <summary>
+        /// holder for our raycast origin corners (TR, TL, BR, BL)
+        /// </summary>
+        CharacterRaycastOrigins _raycastOrigins;
 
 		/// <summary>
 		/// stores our raycast hit during movement
@@ -181,6 +181,18 @@ namespace Prime31
 		// the reason is so that if we reach the end of the slope we can make an adjustment to stay grounded
 		bool _isGoingUpSlope = false;
 
+
+		#region Non-Prime31 Adjustments
+
+		//Variables
+		RaycastHit2D _verticalRaycastHit;
+
+		//Properties
+		public float SlopeLimit { set { _slopeLimit = value; } }
+
+		public RaycastHit2D VerticalRaycastHit { get { return _verticalRaycastHit; } }
+
+        #endregion
 
 		#region Monobehaviour
 
@@ -209,23 +221,20 @@ namespace Prime31
 
 		public void OnTriggerEnter2D(Collider2D col)
 		{
-			if (onTriggerEnterEvent != null)
-				onTriggerEnterEvent(col);
-		}
+            onTriggerEnterEvent?.Invoke(col);
+        }
 
 
 		public void OnTriggerStay2D(Collider2D col)
 		{
-			if (onTriggerStayEvent != null)
-				onTriggerStayEvent(col);
-		}
+            onTriggerStayEvent?.Invoke(col);
+        }
 
 
 		public void OnTriggerExit2D(Collider2D col)
 		{
-			if (onTriggerExitEvent != null)
-				onTriggerExitEvent(col);
-		}
+            onTriggerExitEvent?.Invoke(col);
+        }
 
 		#endregion
 
@@ -377,7 +386,7 @@ namespace Prime31
 				if (_raycastHit)
 				{
 					// the bottom ray can hit a slope but no other ray can so we have special handling for these cases
-					if (i == 0 && handleHorizontalSlope(ref deltaMovement, Vector2.Angle(_raycastHit.normal, Vector2.up)))
+					if (i == 0 && handleHorizontalSlope(ref deltaMovement, Vector2.Angle(_raycastHit.normal, Vector2.up))) 
 					{
 						_raycastHitsThisFrame.Add(_raycastHit);
 						// if we weren't grounded last frame, that means we're landing on a slope horizontally.
@@ -430,7 +439,7 @@ namespace Prime31
 				return false;
 
 			// if we can walk on slopes and our angle is small enough we need to move up
-			if (angle < slopeLimit)
+			if (angle < _slopeLimit)
 			{
 				// we only need to adjust the deltaMovement if we are not jumping
 				// TODO: this uses a magic number which isn't ideal! The alternative is to have the user pass in if there is a jump this frame
@@ -551,6 +560,7 @@ namespace Prime31
 			var slopeRay = new Vector2(centerOfCollider, _raycastOrigins.bottomLeft.y);
 			DrawRay(slopeRay, rayDirection * slopeCheckRayDistance, Color.yellow);
 			_raycastHit = Physics2D.Raycast(slopeRay, rayDirection, slopeCheckRayDistance, platformMask);
+			_verticalRaycastHit = _raycastHit;
 			if (_raycastHit)
 			{
 				// bail out if we have no slope

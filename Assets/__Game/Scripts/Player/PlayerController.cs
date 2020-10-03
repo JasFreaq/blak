@@ -7,7 +7,7 @@ public class PlayerController : MonoBehaviour
 {
     #region Variables
 
-    [Header("Locomotion Variables")]
+    [Header("Locomotion Base")]
     [SerializeField] float _walkSpeed = 6f;
     [SerializeField] float _jumpHeight = 8f;
     [SerializeField] float _wallJumpHeight = 1.5f;
@@ -17,7 +17,12 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Controls the factor by which the jump height will reduce when the player let's up the jump button.")]
     [SerializeField] float _jumpButtonReleaseAttentuationFactor = 0.5f;
     [SerializeField] float _coyoteTimeDuration = 0.5f;
+
+    [Header("Slope Sliding")]
     [SerializeField] float _slopeSlideSpeed = 4f;
+    [SerializeField] float _slopeMinHorizontalSpeed = 1f;
+    [Tooltip("In Degrees.")]
+    [SerializeField] float _slopeLimit = 30f;
 
     //Cache Components
     CharacterController2D _characterController2D = null;
@@ -29,13 +34,10 @@ public class PlayerController : MonoBehaviour
     bool _isJumping = false;
     bool _isWallJumping = false;
     bool _isCoyoteTime = true;
-    bool _isSlopeSliding = false;
 
     float _coyoteTimeCounter = 0f;
-    float _slopeAngle = 0f;
 
     Vector3 _movementDirection = Vector3.zero;
-    Vector3 _slopeGradient = Vector3.zero;
 
     #endregion
 
@@ -48,7 +50,10 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        
+        if (_characterController2D)
+        {
+            _characterController2D.SlopeLimit = _slopeLimit;
+        }
     }
 
     void Update()
@@ -69,13 +74,17 @@ public class PlayerController : MonoBehaviour
 
     private void Locomotion()
     {
-        ProcessLocomotionInputs();
+        ProcessBaseLocomotionAndInputs();
 
+        //Calculations
+        
         if (_movementDirection.x > Mathf.Epsilon)
             transform.eulerAngles = new Vector3(0, 0, 0);
         else if (_movementDirection.x < -Mathf.Epsilon)
             transform.eulerAngles = new Vector3(0, 180, 0);
+
         _movementDirection.y -= _gravity * Time.deltaTime;
+        
 
         //Move
         _characterController2D.move(_movementDirection * Time.deltaTime);
@@ -83,23 +92,8 @@ public class PlayerController : MonoBehaviour
         //Update Flags
         _collisionStateFlag = _characterController2D.collisionState;
         _isGrounded = _collisionStateFlag.below;
-        if (!_isGrounded && !_isJumping)
-        {
-            if (Mathf.Abs(_coyoteTimeCounter) < Mathf.Epsilon)
-            {
-                _coyoteTimeCounter = Time.time;
-                _isCoyoteTime = true;
-            }
-            else if (Mathf.Abs(Time.time - _coyoteTimeCounter) > _coyoteTimeDuration) 
-            {
-                _isCoyoteTime = false;
-            }
-        }
-        else
-        {
-            _coyoteTimeCounter = 0f;
-            _isCoyoteTime = false;
-        }
+        
+        ProcessCoyoteTime();
 
         //Clear upward movement when upward path is blocked
         if (_collisionStateFlag.above)
@@ -112,12 +106,14 @@ public class PlayerController : MonoBehaviour
             ProcessWallJumpAndInput();
         }
     }
-
-    private void ProcessLocomotionInputs()
+       
+    private void ProcessBaseLocomotionAndInputs()
     {
+        Vector3 tempMovement = Vector3.zero;
+//      
         _movementDirection.x = Input.GetAxis("Horizontal");
         _movementDirection.x *= _walkSpeed;
-
+        
         if (_isGrounded)
         {
             _movementDirection.y = 0;
@@ -125,6 +121,7 @@ public class PlayerController : MonoBehaviour
             _isWallJumping = false;
             _isCoyoteTime = false;
 
+            ProcessSlopeSliding();
             ProcessJump();
         }
         else if (_isCoyoteTime) //Coyote Time!
@@ -141,6 +138,29 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void ProcessSlopeSliding()
+    {
+        RaycastHit2D raycastHit = _characterController2D.VerticalRaycastHit;
+        if (raycastHit)
+        {
+            float slopeAngle = Vector2.Angle(raycastHit.normal, Vector2.up);
+            Vector3 slopeGradient = raycastHit.normal;
+
+            if (_slopeLimit - slopeAngle < Mathf.Epsilon) 
+            {
+                Vector3 slopeMovement = slopeGradient * slopeAngle;
+                float horizontal = _movementDirection.x + (slopeMovement.normalized.x * _slopeSlideSpeed);
+
+                if (MathUtils.NumSign(slopeMovement.x) == 1)
+                    horizontal = Mathf.Max(horizontal, _slopeMinHorizontalSpeed);
+                else
+                    horizontal = Mathf.Min(horizontal, -_slopeMinHorizontalSpeed);
+
+                _movementDirection = new Vector3(horizontal, -slopeMovement.normalized.y * _slopeSlideSpeed, 0f);
+            }
+        }
+    }
+
     private void ProcessJump()
     {
         if (Input.GetButtonDown("Jump"))
@@ -150,6 +170,27 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void ProcessCoyoteTime()
+    {
+        if (!_isGrounded && !_isJumping)
+        {
+            if (Mathf.Abs(_coyoteTimeCounter) < Mathf.Epsilon)
+            {
+                _coyoteTimeCounter = Time.time;
+                _isCoyoteTime = true;
+            }
+            else if (Mathf.Abs(Time.time - _coyoteTimeCounter) > _coyoteTimeDuration)
+            {
+                _isCoyoteTime = false;
+            }
+        }
+        else
+        {
+            _coyoteTimeCounter = 0f;
+            _isCoyoteTime = false;
+        }
+    }
+    
     private void ProcessWallJumpAndInput()
     {
         if (!_isGrounded && Input.GetButtonDown("Jump") && !_isWallJumping) 
