@@ -24,6 +24,10 @@ public class PlayerController : MonoBehaviour
     [Tooltip("In Degrees.")]
     [SerializeField] float _slopeLimit = 30f;
 
+    [Header("Shape Abilities")]
+    [SerializeField] float _powerJumpHeight = 10f;
+    [SerializeField] float _glideAmount = 2f;
+
     //Cache Components
     CharacterController2D _characterController2D = null;
 
@@ -34,6 +38,13 @@ public class PlayerController : MonoBehaviour
     bool _isJumping = false;
     bool _isWallJumping = false;
     bool _isCoyoteTime = true;
+    bool _isGliding = false;
+    bool _isPowerJumping = false;
+
+    bool _canPowerJump = true;
+
+    bool _canGlide = true;
+    bool _canStartGliding = false;
 
     float _coyoteTimeCounter = 0f;
 
@@ -83,7 +94,22 @@ public class PlayerController : MonoBehaviour
         else if (_movementDirection.x < -Mathf.Epsilon)
             transform.eulerAngles = new Vector3(0, 180, 0);
 
-        _movementDirection.y -= _gravity * Time.deltaTime;
+        if (_canGlide && Input.GetAxisRaw("Vertical") > 0 && _characterController2D.velocity.y > 0.2f) 
+        {
+            _isGliding = true;
+            if (_canStartGliding)
+            {
+                _movementDirection.y = 0;
+                _canStartGliding = false;
+            }
+            _movementDirection.y -= _glideAmount * Time.deltaTime;
+        }
+        else
+        {
+            _isGliding = false;
+            _canStartGliding = true;
+            _movementDirection.y -= _gravity * Time.deltaTime;
+        }
         
 
         //Move
@@ -109,8 +135,6 @@ public class PlayerController : MonoBehaviour
        
     private void ProcessBaseLocomotionAndInputs()
     {
-        Vector3 tempMovement = Vector3.zero;
-//      
         _movementDirection.x = Input.GetAxis("Horizontal");
         _movementDirection.x *= _walkSpeed;
         
@@ -165,7 +189,8 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetButtonDown("Jump"))
         {
-            _movementDirection.y = _jumpHeight;
+            _movementDirection.y = _canPowerJump ? _jumpHeight + _powerJumpHeight : _jumpHeight;
+            _isPowerJumping = _canPowerJump;
             _isJumping = true;
         }
     }
