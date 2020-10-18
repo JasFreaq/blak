@@ -7,22 +7,31 @@ public class PlayerController : MonoBehaviour
 {
     #region Variables
 
-    [Header("Locomotion Base")]
-    [SerializeField] float _walkSpeed = 6f;
+    [Header("Run State")]
+    [SerializeField] float _maxRunSpeed = 6f;
+    [SerializeField] AnimationCurve _runAccelerationCurve = new AnimationCurve();
+    [Tooltip("No. of times the acceleration speed is compared to deceleration.")]
+    [SerializeField] float _runAccelerationToDecelerationRatio = 2f;
+    [SerializeField] float _runAccelerationTime = 0.2f;
+
+    bool _wasRunningLastFrame = false;
+    bool _wasStoppingRunLastFrame = false;
+    float _runTimeCounter = 0f;
+    int _runDir = 0;
+
+    [Header("Jump")]
+    [SerializeField] float _playerHeight = 2.56f; //May derive from BoxCollider, decide later
+    [Tooltip("This value multiplied by the PlayerHeight is the MaxJumpHeight of the player.")]
+    [SerializeField] int _maxJumpHeightToPlayerHeightRatio = 3;
     [SerializeField] float _jumpHeight = 8f;
     [SerializeField] float _wallJumpHeight = 1.5f;
+    [SerializeField] AnimationCurve _jumpCurve = new AnimationCurve();
 
     [Header("Locomotion Affectors")]
     [SerializeField] float _gravity = 20f;
     [Tooltip("Controls the factor by which the jump height will reduce when the player let's up the jump button.")]
     [SerializeField] float _jumpButtonReleaseAttentuationFactor = 0.5f;
     [SerializeField] float _coyoteTimeDuration = 0.5f;
-
-    [Header("Slope Sliding")]
-    [SerializeField] float _slopeSlideSpeed = 4f;
-    [SerializeField] float _slopeMinHorizontalSpeed = 1f;
-    [Tooltip("In Degrees.")]
-    [SerializeField] float _slopeLimit = 30f;
 
     [Header("Shape Abilities")]
     [SerializeField] float _powerJumpHeight = 10f;
@@ -33,6 +42,7 @@ public class PlayerController : MonoBehaviour
 
     //Internals
     CharacterController2D.CharacterCollisionState2D _collisionStateFlag;
+
 
     bool _isGrounded = true;
     bool _isJumping = false;
@@ -61,10 +71,7 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        if (_characterController2D)
-        {
-            _characterController2D.SlopeLimit = _slopeLimit;
-        }
+        
     }
 
     void Update()
@@ -135,9 +142,8 @@ public class PlayerController : MonoBehaviour
        
     private void ProcessBaseLocomotionAndInputs()
     {
-        _movementDirection.x = Input.GetAxis("Horizontal");
-        _movementDirection.x *= _walkSpeed;
-        
+        ProcessRun();
+
         if (_isGrounded)
         {
             _movementDirection.y = 0;
@@ -145,7 +151,6 @@ public class PlayerController : MonoBehaviour
             _isWallJumping = false;
             _isCoyoteTime = false;
 
-            ProcessSlopeSliding();
             ProcessJump();
         }
         else if (_isCoyoteTime) //Coyote Time!
@@ -162,27 +167,48 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void ProcessSlopeSliding()
+    private void ProcessRun()
     {
-        RaycastHit2D raycastHit = _characterController2D.VerticalRaycastHit;
-        if (raycastHit)
+        float horizontalInput = Input.GetAxisRaw("Horizontal");
+
+        if (horizontalInput != 0)
         {
-            float slopeAngle = Vector2.Angle(raycastHit.normal, Vector2.up);
-            Vector3 slopeGradient = raycastHit.normal;
+            _runDir = MathUtils.NumSign(horizontalInput);
 
-            if (_slopeLimit - slopeAngle < Mathf.Epsilon) 
+            if (!_wasRunningLastFrame)
             {
-                Vector3 slopeMovement = slopeGradient * slopeAngle;
-                float horizontal = _movementDirection.x + (slopeMovement.normalized.x * _slopeSlideSpeed);
+                _runTimeCounter = 0;
+                _wasRunningLastFrame = true;
+            }
 
-                if (MathUtils.NumSign(slopeMovement.x) == 1)
-                    horizontal = Mathf.Max(horizontal, _slopeMinHorizontalSpeed);
-                else
-                    horizontal = Mathf.Min(horizontal, -_slopeMinHorizontalSpeed);
+            float curveTime = Mathf.Clamp(_runTimeCounter / _runAccelerationTime, 0, 1);
+            float horizontalMultiplier = _runAccelerationCurve.Evaluate(curveTime);
+            _movementDirection.x = horizontalInput * _maxRunSpeed * horizontalMultiplier;
+        }
+        else
+        {
+            if (_wasRunningLastFrame)
+            {
+                if (!_wasStoppingRunLastFrame)
+                {
+                    _runTimeCounter = 0;
+                    _wasStoppingRunLastFrame = true;
+                }
 
-                _movementDirection = new Vector3(horizontal, -slopeMovement.normalized.y * _slopeSlideSpeed, 0f);
+                float curveTime = Mathf.Clamp((_runTimeCounter / _runAccelerationTime) * _runAccelerationToDecelerationRatio, 0, 1);
+                float horizontalMultiplier = _runAccelerationCurve.Evaluate(1 - curveTime);
+                _movementDirection.x = _runDir * _maxRunSpeed * horizontalMultiplier;
+
+                if (Mathf.Abs(_movementDirection.x) == 0)
+                {
+                    _wasRunningLastFrame = false;
+                    _wasStoppingRunLastFrame = false;
+                    _runDir = 0;
+                }
             }
         }
+
+        _runTimeCounter += Time.deltaTime;
     }
 
     private void ProcessJump()

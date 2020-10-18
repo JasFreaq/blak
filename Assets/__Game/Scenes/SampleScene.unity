@@ -183,7 +183,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDrag: 0
   m_AngularDrag: 0.05
-  m_GravityScale: 0
+  m_GravityScale: 1
   m_Material: {fileID: 0}
   m_Interpolate: 0
   m_SleepingMode: 1
@@ -247,7 +247,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 265863425}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.07, y: 4.23, z: 0}
+  m_LocalPosition: {x: 9.49, y: 0.73, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1683138228}
@@ -268,15 +268,73 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c1f3436b9c3d104686ab783f23bcb19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _walkSpeed: 6
+  _maxRunSpeed: 6
+  _runAccelerationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  _runAccelerationToDecelerationRatio: 2
+  _runAccelerationTime: 0.3
+  _playerHeight: 2.56
+  _maxJumpHeightToPlayerHeightRatio: 3
   _jumpHeight: 10
   _wallJumpHeight: 1.5
+  _jumpCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.5
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -2
+      outSlope: -2
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   _gravity: 20
   _jumpButtonReleaseAttentuationFactor: 0.5
   _coyoteTimeDuration: 0.5
-  _slopeSlideSpeed: 4
-  _slopeMinHorizontalSpeed: 1
-  _slopeLimit: 30
   _powerJumpHeight: 4
   _glideAmount: 2
 --- !u!114 &265863431
@@ -302,6 +360,7 @@ MonoBehaviour:
   oneWayPlatformMask:
     serializedVersion: 2
     m_Bits: 0
+  slopeLimit: 30
   jumpingThreshold: 0.07
   slopeSpeedMultiplier:
     serializedVersion: 2
@@ -398,7 +457,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 289446716}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.0699995, y: 4.2300005, z: -10}
+  m_LocalPosition: {x: 9.49, y: 0.73000026, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1627831146}
@@ -539,7 +598,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 493961949}
   m_LocalRotation: {x: -0, y: -0, z: -0.15115401, w: 0.98851025}
-  m_LocalPosition: {x: 44.73, y: -4.81, z: 0}
+  m_LocalPosition: {x: 44.2, y: -7.27, z: 0}
   m_LocalScale: {x: 616.13043, y: 15, z: 1}
   m_Children: []
   m_Father: {fileID: 2136711689}
@@ -734,7 +793,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 519420028}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.0699995, y: 4.2300005, z: -10}
+  m_LocalPosition: {x: 9.49, y: 0.73000026, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1689,8 +1748,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1840675759}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 20.875, y: -1.11, z: 0}
-  m_LocalScale: {x: 616.13043, y: 15, z: 1}
+  m_LocalPosition: {x: 143.634, y: -1.11, z: 0}
+  m_LocalScale: {x: 6754.077, y: 15, z: 1}
   m_Children: []
   m_Father: {fileID: 2136711689}
   m_RootOrder: 1
