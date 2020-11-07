@@ -12,7 +12,7 @@ namespace Prime31
 	{
 		#region internal types
 
-		struct CharacterRaycastOrigins
+		public struct CharacterRaycastOrigins
 		{
 			public Vector3 topLeft;
 			public Vector3 bottomRight;
@@ -163,6 +163,8 @@ namespace Prime31
 		/// </summary>
 		CharacterRaycastOrigins _raycastOrigins;
 
+		public CharacterRaycastOrigins RaycastOrigins { get { return _raycastOrigins; } }
+
 		/// <summary>
 		/// stores our raycast hit during movement
 		/// </summary>
@@ -182,11 +184,25 @@ namespace Prime31
 		// the reason is so that if we reach the end of the slope we can make an adjustment to stay grounded
 		bool _isGoingUpSlope = false;
 
+		#region Jasfreaq Implementation
 
-		#region Monobehaviour
+		const string BOX_TAG = "Box";
+		
+		int _shapesLayer; 
 
-		void Awake()
+		bool _aboveBox = false;
+
+		public bool AboveBox { get { return _aboveBox; } }
+
+        #endregion
+
+
+        #region Monobehaviour
+
+        void Awake()
 		{
+			_shapesLayer = LayerMask.NameToLayer("Shapes");
+
 			// add our one-way platforms to our normal platform mask so that we can land on them from above
 			platformMask |= oneWayPlatformMask;
 
@@ -256,6 +272,8 @@ namespace Prime31
 			_isGoingUpSlope = false;
 
 			primeRaycastOrigins();
+
+			_aboveBox = false;
 
 
 			// first, we check for a slope below us before moving
@@ -364,16 +382,16 @@ namespace Prime31
 
 			for (var i = 0; i < totalHorizontalRays; i++)
 			{
-				var ray = new Vector2(initialRayOrigin.x, initialRayOrigin.y + i * _verticalDistanceBetweenRays);
+				var rayOrigin = new Vector2(initialRayOrigin.x, initialRayOrigin.y + i * _verticalDistanceBetweenRays);
 
-				DrawRay(ray, rayDirection * rayDistance, Color.red);
+				DrawRay(rayOrigin, rayDirection * rayDistance, Color.red);
 
 				// if we are grounded we will include oneWayPlatforms only on the first ray (the bottom one). this will allow us to
 				// walk up sloped oneWayPlatforms
 				if (i == 0 && collisionState.wasGroundedLastFrame)
-					_raycastHit = Physics2D.Raycast(ray, rayDirection, rayDistance, platformMask);
+					_raycastHit = Physics2D.Raycast(rayOrigin, rayDirection, rayDistance, platformMask);
 				else
-					_raycastHit = Physics2D.Raycast(ray, rayDirection, rayDistance, platformMask & ~oneWayPlatformMask);
+					_raycastHit = Physics2D.Raycast(rayOrigin, rayDirection, rayDistance, platformMask & ~oneWayPlatformMask);
 
 				if (_raycastHit)
 				{
@@ -389,10 +407,10 @@ namespace Prime31
 							transform.Translate(new Vector2(flushDistance, 0));
 						}
 						break;
-					}
-
+					}			
+					
 					// set our new deltaMovement and recalculate the rayDistance taking it into account
-					deltaMovement.x = _raycastHit.point.x - ray.x;
+					deltaMovement.x = _raycastHit.point.x - rayOrigin.x;
 					rayDistance = Mathf.Abs(deltaMovement.x);
 
 					// remember to remove the skinWidth from our deltaMovement
@@ -406,7 +424,8 @@ namespace Prime31
 						deltaMovement.x += _skinWidth;
 						collisionState.left = true;
 					}
-
+					
+					//print("Left: " + collisionState.left + " Right: " + collisionState.right);
 					_raycastHitsThisFrame.Add(_raycastHit);
 
 					// we add a small fudge factor for the float operations here. if our rayDistance is smaller
@@ -517,6 +536,14 @@ namespace Prime31
 					{
 						deltaMovement.y += _skinWidth;
 						collisionState.below = true;
+
+						if (_raycastHit.transform.gameObject.layer == _shapesLayer)
+						{
+							if (_raycastHit.transform.tag == BOX_TAG)
+							{
+								_aboveBox = true;
+							}
+						}
 					}
 
 					_raycastHitsThisFrame.Add(_raycastHit);

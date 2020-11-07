@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Prime31;
+using UnityEditor;
 
 public class PlayerController : MonoBehaviour
 {
@@ -19,23 +20,29 @@ public class PlayerController : MonoBehaviour
     float _runTimeCounter = 0f;
     int _runDir = 0;
 
-    [Header("Jump")]
-    [SerializeField] float _playerHeight = 2.56f; //May derive from BoxCollider, decide later
-    [Tooltip("This value multiplied by the PlayerHeight is the MaxJumpHeight of the player.")]
-    [SerializeField] int _maxJumpHeightToPlayerHeightRatio = 3;
+    [Header("Jump State")]
     [SerializeField] float _jumpHeight = 8f;
     [SerializeField] float _wallJumpHeight = 1.5f;
-    [SerializeField] AnimationCurve _jumpCurve = new AnimationCurve();
-
-    [Header("Locomotion Affectors")]
+    [SerializeField] float _wallJumpBufferTime = 0.3f;
     [SerializeField] float _gravity = 20f;
     [Tooltip("Controls the factor by which the jump height will reduce when the player let's up the jump button.")]
     [SerializeField] float _jumpButtonReleaseAttentuationFactor = 0.5f;
     [SerializeField] float _coyoteTimeDuration = 0.5f;
+    [SerializeField] float _inAirJumpInputBufferRayLength = 0.5f;
+    [SerializeField] float _inAirJumpInputBufferTime = 0.5f;
+
+    float _coyoteTimeTracker = 0f;
+    float _wallJumpBufferTimeTracker = 0;
+    float _jumpBufferTimeCounter = 0f;
 
     [Header("Shape Abilities")]
     [SerializeField] float _powerJumpHeight = 10f;
-    [SerializeField] float _glideAmount = 2f;
+    [Tooltip("Increase Time.timeScale to this amount at the beginning of the PowerJump.")]
+    [SerializeField] float _powerJumpIncreasedTimeScale = 5f;
+    [Tooltip("Reset Time.timeScale after this many seconds.")]
+    [SerializeField] float _powerJumpResetTimeScaleTime = 0.1f;
+
+    //[SerializeField] float _glideAmount = 2f;
 
     //Cache Components
     CharacterController2D _characterController2D = null;
@@ -43,20 +50,17 @@ public class PlayerController : MonoBehaviour
     //Internals
     CharacterController2D.CharacterCollisionState2D _collisionStateFlag;
 
-
     bool _isGrounded = true;
     bool _isJumping = false;
     bool _isWallJumping = false;
-    bool _isCoyoteTime = true;
-    bool _isGliding = false;
+    bool _isCoyoteTime = false;
+    bool _isWithinJumpBuffer = false;
+    
+    //bool _isGliding = false;
     bool _isPowerJumping = false;
-
-    bool _canPowerJump = true;
 
     bool _canGlide = true;
     bool _canStartGliding = false;
-
-    float _coyoteTimeCounter = 0f;
 
     Vector3 _movementDirection = Vector3.zero;
 
@@ -101,22 +105,22 @@ public class PlayerController : MonoBehaviour
         else if (_movementDirection.x < -Mathf.Epsilon)
             transform.eulerAngles = new Vector3(0, 180, 0);
 
-        if (_canGlide && Input.GetAxisRaw("Vertical") > 0 && _characterController2D.velocity.y > 0.2f) 
-        {
-            _isGliding = true;
-            if (_canStartGliding)
-            {
-                _movementDirection.y = 0;
-                _canStartGliding = false;
-            }
-            _movementDirection.y -= _glideAmount * Time.deltaTime;
-        }
-        else
-        {
-            _isGliding = false;
-            _canStartGliding = true;
+        //if (_canGlide && Input.GetAxisRaw("Vertical") > 0 && _characterController2D.velocity.y > 0.2f) 
+        //{
+        //    _isGliding = true;
+        //    if (_canStartGliding)
+        //    {
+        //        _movementDirection.y = 0;
+        //        _canStartGliding = false;
+        //    }
+        //    _movementDirection.y -= _glideAmount * Time.deltaTime;
+        //}
+        //else
+        //{
+        //    _isGliding = false;
+        //    _canStartGliding = true;
             _movementDirection.y -= _gravity * Time.deltaTime;
-        }
+        //}
         
 
         //Move
@@ -127,6 +131,8 @@ public class PlayerController : MonoBehaviour
         _isGrounded = _collisionStateFlag.below;
         
         ProcessCoyoteTime();
+        ProcessJumpBufferTime();
+
 
         //Clear upward movement when upward path is blocked
         if (_collisionStateFlag.above)
@@ -142,7 +148,10 @@ public class PlayerController : MonoBehaviour
        
     private void ProcessBaseLocomotionAndInputs()
     {
-        ProcessRun();
+        if (!_isPowerJumping)
+            ProcessRun();
+        else
+            _movementDirection.x = 0;
 
         if (_isGrounded)
         {
@@ -153,7 +162,7 @@ public class PlayerController : MonoBehaviour
 
             ProcessJump();
         }
-        else if (_isCoyoteTime) //Coyote Time!
+        else if (_isCoyoteTime || _isWithinJumpBuffer) //Coyote Time!
         {
             ProcessJump();
         }
@@ -170,7 +179,7 @@ public class PlayerController : MonoBehaviour
     private void ProcessRun()
     {
         float horizontalInput = Input.GetAxisRaw("Horizontal");
-
+        
         if (horizontalInput != 0)
         {
             _runDir = MathUtils.NumSign(horizontalInput);
@@ -183,7 +192,7 @@ public class PlayerController : MonoBehaviour
 
             float curveTime = Mathf.Clamp(_runTimeCounter / _runAccelerationTime, 0, 1);
             float horizontalMultiplier = _runAccelerationCurve.Evaluate(curveTime);
-            _movementDirection.x = horizontalInput * _maxRunSpeed * horizontalMultiplier;
+            _movementDirection.x = _runDir * (_maxRunSpeed * horizontalMultiplier);
         }
         else
         {
@@ -215,8 +224,16 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetButtonDown("Jump"))
         {
-            _movementDirection.y = _canPowerJump ? _jumpHeight + _powerJumpHeight : _jumpHeight;
-            _isPowerJumping = _canPowerJump;
+            if (_characterController2D.AboveBox)
+            {
+                StartCoroutine(ProcessPowerJumpRoutine());
+            }
+            else
+            {
+                _movementDirection.y = _jumpHeight;                
+            }
+
+            _wallJumpBufferTimeTracker = Time.time;
             _isJumping = true;
         }
     }
@@ -225,30 +242,76 @@ public class PlayerController : MonoBehaviour
     {
         if (!_isGrounded && !_isJumping)
         {
-            if (Mathf.Abs(_coyoteTimeCounter) < Mathf.Epsilon)
+            if (Mathf.Abs(_coyoteTimeTracker) < Mathf.Epsilon)
             {
-                _coyoteTimeCounter = Time.time;
+                _coyoteTimeTracker = Time.time;
                 _isCoyoteTime = true;
             }
-            else if (Mathf.Abs(Time.time - _coyoteTimeCounter) > _coyoteTimeDuration)
+            else if (Mathf.Abs(Time.time - _coyoteTimeTracker) > _coyoteTimeDuration)
             {
                 _isCoyoteTime = false;
             }
         }
         else
         {
-            _coyoteTimeCounter = 0f;
+            _coyoteTimeTracker = 0f;
             _isCoyoteTime = false;
+        }
+    }
+
+    private void ProcessJumpBufferTime()
+    {
+        if (!_isGrounded) 
+        {
+            if (_jumpBufferTimeCounter > _inAirJumpInputBufferTime)
+            {
+                RaycastHit2D hit_1 = Physics2D.Raycast(_characterController2D.RaycastOrigins.bottomRight, Vector2.down,
+                _inAirJumpInputBufferRayLength, _characterController2D.platformMask);
+                RaycastHit2D hit_2 = Physics2D.Raycast(_characterController2D.RaycastOrigins.bottomLeft, Vector2.down,
+                    _inAirJumpInputBufferRayLength, _characterController2D.platformMask);
+
+                Debug.DrawRay(_characterController2D.RaycastOrigins.bottomRight, Vector2.down * _inAirJumpInputBufferRayLength, Color.magenta);
+                Debug.DrawRay(_characterController2D.RaycastOrigins.bottomLeft, Vector2.down * _inAirJumpInputBufferRayLength, Color.magenta);
+
+
+                if (hit_1 || hit_2)
+                {
+                    _isWithinJumpBuffer = true;
+                }
+                else
+                {
+                    _isWithinJumpBuffer = false;
+                }
+            }
+
+            _jumpBufferTimeCounter += Time.deltaTime;
+        }
+        else
+        {
+            _isWithinJumpBuffer = false;
+            _jumpBufferTimeCounter = 0;
         }
     }
     
     private void ProcessWallJumpAndInput()
     {
-        if (!_isGrounded && Input.GetButtonDown("Jump") && !_isWallJumping) 
+        if (!_isGrounded && Input.GetButtonDown("Jump") && !_isWallJumping && Time.time - _wallJumpBufferTimeTracker > _wallJumpBufferTime)  
         {
-            _movementDirection.y = _jumpHeight * _wallJumpHeight;
+            _movementDirection.y = _jumpHeight + _wallJumpHeight;
             _isWallJumping = true;
         }
+    }
+
+    IEnumerator ProcessPowerJumpRoutine()
+    {
+        _movementDirection.y = _powerJumpHeight;
+        Time.timeScale = _powerJumpIncreasedTimeScale;
+        _isPowerJumping = true;
+
+        yield return new WaitForSecondsRealtime(_powerJumpResetTimeScaleTime);
+
+        Time.timeScale = 1f;
+        _isPowerJumping = false;
     }
 
     #endregion

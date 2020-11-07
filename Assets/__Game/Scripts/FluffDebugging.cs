@@ -14,6 +14,6 @@ public class FluffDebugging : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.I))
-            Time.timeScale = .2f;
+            Time.timeScale = 0.2f;
     }
 }

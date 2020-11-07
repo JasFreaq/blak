@@ -94,16 +94,16 @@ public class PlayerLight : MonoBehaviour
     {
         GameObject shape = null;
         bool canForm = false;
-
+        
         switch (_currentShape)
         {
             case ShapeType.Square:
                 shape = _shapesPool.GetBox();
-                canForm = CheckBoxCollision();
+                canForm = !CheckBoxCollision();
                 break;
             case ShapeType.Circle:
                 shape = _shapesPool.GetBalloon();
-                canForm = CheckBalloonCollision();
+                canForm = !CheckBalloonCollision();
                 break;
             case ShapeType.Triangle:
                 shape = _shapesPool.GetPrism();
