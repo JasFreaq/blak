@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Prime31;
 using UnityEditor;
+using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
@@ -55,6 +56,9 @@ public class PlayerController : MonoBehaviour
     bool _isWallJumping = false;
     bool _isCoyoteTime = false;
     bool _isWithinJumpBuffer = false;
+
+    bool _isPushingShape = false;
+    Transform _pushedShape = null;
     
     //bool _isGliding = false;
     bool _isPowerJumping = false;
@@ -63,8 +67,11 @@ public class PlayerController : MonoBehaviour
     bool _canStartGliding = false;
 
     Vector3 _movementDirection = Vector3.zero;
+    Vector3 _deltaMovement = Vector3.zero;
 
     #endregion
+
+    public float HorizontalMovement { get { return _movementDirection.x; } }
 
     #region Lifecycle Functions
 
@@ -121,10 +128,10 @@ public class PlayerController : MonoBehaviour
         //    _canStartGliding = true;
             _movementDirection.y -= _gravity * Time.deltaTime;
         //}
-        
+
 
         //Move
-        _characterController2D.move(_movementDirection * Time.deltaTime);
+        _deltaMovement = _characterController2D.move(_movementDirection * Time.deltaTime);
 
         //Update Flags
         _collisionStateFlag = _characterController2D.collisionState;
@@ -159,6 +166,7 @@ public class PlayerController : MonoBehaviour
             _isJumping = false;
             _isWallJumping = false;
             _isCoyoteTime = false;
+
 
             ProcessJump();
         }
@@ -219,6 +227,8 @@ public class PlayerController : MonoBehaviour
 
         _runTimeCounter += Time.deltaTime;
     }
+
+
 
     private void ProcessJump()
     {
@@ -315,4 +325,20 @@ public class PlayerController : MonoBehaviour
     }
 
     #endregion
+
+    //TODO: Rethink and Reimplement 
+    public void UpdateShapePushStatus(Transform shape)
+    {
+        if (!_isPushingShape)
+        {
+            _isPushingShape = true;
+            _pushedShape = shape;
+        }
+    }
+
+    public void ClearShapePushStatus()
+    {
+        _isPushingShape = false;
+        _pushedShape = null;
+    }
 }

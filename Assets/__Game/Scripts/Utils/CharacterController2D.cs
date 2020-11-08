@@ -261,7 +261,7 @@ namespace Prime31
 		/// stop when run into.
 		/// </summary>
 		/// <param name="deltaMovement">Delta movement.</param>
-		public void move(Vector3 deltaMovement)
+		public Vector3 move(Vector3 deltaMovement)
 		{
 			// save off our current grounded state which we will use for wasGroundedLastFrame and becameGroundedThisFrame
 			collisionState.wasGroundedLastFrame = collisionState.below;
@@ -313,6 +313,8 @@ namespace Prime31
 			}
 
 			ignoreOneWayPlatformsThisFrame = false;
+
+			return deltaMovement;
 		}
 
 
