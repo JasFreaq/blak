@@ -12,7 +12,6 @@ public class PlayerLight : MonoBehaviour
     [SerializeField] [Range(0, MAX_LIGHT_LIMIT)] int _lightLevel = 2;
 
     [Header("Shaping")]
-    [SerializeField] PlayerShapesPool _shapesPool;
     [SerializeField] Transform _shapeFormingMarker;
     [SerializeField] LayerMask _shapeCollisionLayers;
 
@@ -98,15 +97,15 @@ public class PlayerLight : MonoBehaviour
         switch (_currentShape)
         {
             case ShapeType.Square:
-                shape = _shapesPool.GetBox();
+                shape = PlayerShapesPool.Instance.GetBox();
                 canForm = !CheckBoxCollision();
                 break;
             case ShapeType.Circle:
-                shape = _shapesPool.GetBalloon();
+                shape = PlayerShapesPool.Instance.GetBalloon();
                 canForm = !CheckBalloonCollision();
                 break;
             case ShapeType.Triangle:
-                shape = _shapesPool.GetPrism();
+                shape = PlayerShapesPool.Instance.GetPrism();
                 //canForm = CheckPrismCollision();
                 break;
         }
@@ -148,8 +147,8 @@ public class PlayerLight : MonoBehaviour
 
     bool CheckBoxCollision()
     {
-        RaycastHit2D hit2D = Physics2D.BoxCast(_shapeFormingMarker.transform.position, 
-            _shapesPool.BoxSize, 0f, Vector2.zero, 0f, _shapeCollisionLayers);
+        RaycastHit2D hit2D = Physics2D.BoxCast(_shapeFormingMarker.transform.position,
+            PlayerShapesPool.Instance.BoxSize, 0f, Vector2.zero, 0f, _shapeCollisionLayers);
 
         if (hit2D)
             return true;
@@ -160,7 +159,7 @@ public class PlayerLight : MonoBehaviour
     bool CheckBalloonCollision()
     {
         RaycastHit2D hit2D = Physics2D.CircleCast(_shapeFormingMarker.transform.position,
-            _shapesPool.BalloonRadius, Vector2.zero, 0f, _shapeCollisionLayers);
+            PlayerShapesPool.Instance.BalloonRadius, Vector2.zero, 0f, _shapeCollisionLayers);
 
         if (hit2D)
             return true;

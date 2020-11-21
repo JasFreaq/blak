@@ -4,80 +4,56 @@ using UnityEngine;
 
 public class PlayerGrabber : MonoBehaviour
 {
+    [SerializeField] float _grabBufferDistance = 0.25f;
     [SerializeField] GameObject _pusher = null;
-    [SerializeField] float _grabBufferXDist = 0.5f;
-    [SerializeField] float _grabBufferXDuration = 0.2f;
 
-    PlayerController _playerController = null;
+    Rigidbody2D _rigidbody2D = null;
 
     Transform _grabbedShape = null;
     bool _triedGrabbing = false;
 
-    float _initialXDist = 0;
-
     private void Awake()
     {
-        _playerController = transform.root.GetComponent<PlayerController>();
+        _rigidbody2D = GetComponent<Rigidbody2D>();
     }
 
     private void Update()
     {
         _triedGrabbing = Input.GetButtonDown("Grab");
-        if (_grabbedShape)
+        if (_triedGrabbing)
         {
-            if (_triedGrabbing)
-            {
-                _grabbedShape = null;
-                _pusher.SetActive(true);
-                return;
-            }
-
-            _grabbedShape.position = new Vector3(_grabbedShape.position.x + _playerController.HorizontalMovement * Time.deltaTime,
-                _grabbedShape.position.y, _grabbedShape.position.z);
-
-            float xDist = GetXDistance();
-            if (xDist > _initialXDist) 
-            {
-                _grabbedShape.position = new Vector3(_playerController.transform.position.x + _initialXDist,
-                    _grabbedShape.position.y, _grabbedShape.position.z);
-            }
-
-            ProcessPushing();
+            Ungrab();
         }
     }
-
+    
     private void OnTriggerStay2D(Collider2D collision)
     {
         if (_triedGrabbing && !_grabbedShape && collision)
         {
             _grabbedShape = collision.transform;
-            _initialXDist = GetXDistance();
             _pusher.SetActive(false);
+
+            FixedJoint2D fixedJoint2D = PlayerShapesPool.Instance.GetShape(_grabbedShape.GetInstanceID()).FixedJoint;
+            fixedJoint2D.connectedBody = _rigidbody2D;
+            float x = _grabbedShape.position.x - transform.position.x;
+            float y = _grabbedShape.position.y - transform.position.y;
+
+            fixedJoint2D.connectedAnchor = new Vector2(x, y);
+            fixedJoint2D.enabled = true;
         }
     }
 
-    float GetXDistance()
+    public void Ungrab()
     {
-        if (_grabbedShape && _playerController)
+        if (_grabbedShape)
         {
-            return Mathf.Abs(_grabbedShape.position.x - _playerController.transform.position.x);
-        }
+            FixedJoint2D fixedJoint2D = PlayerShapesPool.Instance.GetShape(_grabbedShape.GetInstanceID()).FixedJoint;
+            fixedJoint2D.enabled = false;
+            fixedJoint2D.connectedBody = null;
+            fixedJoint2D.connectedAnchor = Vector2.zero;
 
-        return 0;
-    }
-
-    private void ProcessPushing()
-    {
-        int playerMovementDir = MathUtils.NumSign(_playerController.HorizontalMovement);
-        int shapeDir = MathUtils.NumSign(_grabbedShape.position.x - _playerController.transform.position.x);
-
-        if (playerMovementDir == shapeDir)
-        {
-            _playerController.UpdateShapePushStatus(_grabbedShape);
-        }
-        else
-        {
-            _playerController.ClearShapePushStatus();
+            _grabbedShape = null;
+            _pusher.SetActive(true);
         }
     }
 }

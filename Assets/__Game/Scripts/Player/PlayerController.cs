@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 public class PlayerController : MonoBehaviour
 {
     #region Variables
-
+    
     [Header("Run State")]
     [SerializeField] float _maxRunSpeed = 6f;
     [SerializeField] AnimationCurve _runAccelerationCurve = new AnimationCurve();
@@ -47,6 +47,7 @@ public class PlayerController : MonoBehaviour
 
     //Cache Components
     CharacterController2D _characterController2D = null;
+    PlayerGrabber _playerGrabber = null;
 
     //Internals
     CharacterController2D.CharacterCollisionState2D _collisionStateFlag;
@@ -71,13 +72,12 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
-    public float HorizontalMovement { get { return _movementDirection.x; } }
-
     #region Lifecycle Functions
 
     private void Awake()
     {
         _characterController2D = GetComponent<CharacterController2D>();
+        _playerGrabber = GetComponentInChildren<PlayerGrabber>();
     }
 
     void Start()
@@ -90,6 +90,11 @@ public class PlayerController : MonoBehaviour
         if (_characterController2D)
         {
             Locomotion();
+
+            if (!_collisionStateFlag.below && _collisionStateFlag.wasGroundedLastFrame)
+            {
+                _playerGrabber.Ungrab();
+            }
         }
         else
         {
@@ -139,7 +144,6 @@ public class PlayerController : MonoBehaviour
         
         ProcessCoyoteTime();
         ProcessJumpBufferTime();
-
 
         //Clear upward movement when upward path is blocked
         if (_collisionStateFlag.above)
@@ -305,7 +309,7 @@ public class PlayerController : MonoBehaviour
     
     private void ProcessWallJumpAndInput()
     {
-        if (!_isGrounded && Input.GetButtonDown("Jump") && !_isWallJumping && Time.time - _wallJumpBufferTimeTracker > _wallJumpBufferTime)  
+        if (!_isGrounded && Input.GetButtonDown("Jump") && !_isWallJumping && Time.time - _wallJumpBufferTimeTracker > _wallJumpBufferTime)    
         {
             _movementDirection.y = _jumpHeight + _wallJumpHeight;
             _isWallJumping = true;
