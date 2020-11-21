@@ -10,7 +10,8 @@ public class PlayerController : MonoBehaviour
     #region Variables
     
     [Header("Run State")]
-    [SerializeField] float _maxRunSpeed = 6f;
+    [SerializeField] float _maxRunSpeed = 14f;
+    [SerializeField] float _walkSpeed = 6f;
     [SerializeField] AnimationCurve _runAccelerationCurve = new AnimationCurve();
     [Tooltip("No. of times the acceleration speed is compared to deceleration.")]
     [SerializeField] float _runAccelerationToDecelerationRatio = 2f;
@@ -48,6 +49,7 @@ public class PlayerController : MonoBehaviour
     //Cache Components
     CharacterController2D _characterController2D = null;
     PlayerGrabber _playerGrabber = null;
+    PlayerLight _playerLight = null;
 
     //Internals
     CharacterController2D.CharacterCollisionState2D _collisionStateFlag;
@@ -78,6 +80,7 @@ public class PlayerController : MonoBehaviour
     {
         _characterController2D = GetComponent<CharacterController2D>();
         _playerGrabber = GetComponentInChildren<PlayerGrabber>();
+        _playerLight = GetComponentInChildren<PlayerLight>();
     }
 
     void Start()
@@ -87,7 +90,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (_characterController2D)
+        if (_characterController2D && _playerLight && !_playerLight.IsTimeStopped)
         {
             Locomotion();
 
@@ -98,7 +101,11 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            Debug.LogError("PlayerController is missing CharacterController2D.");
+            if (!_characterController2D)
+                Debug.LogError("PlayerController is missing CharacterController2D.");
+
+            if (!_playerLight)
+                Debug.LogError("PlayerController is missing PlayerLight.");
         }
     }
 
@@ -160,7 +167,15 @@ public class PlayerController : MonoBehaviour
     private void ProcessBaseLocomotionAndInputs()
     {
         if (!_isPowerJumping)
-            ProcessRun();
+        {
+            if (_characterController2D.AboveBox)
+            {
+                _movementDirection.x = Input.GetAxis("Horizontal");
+                _movementDirection.x *= _maxRunSpeed;
+            }
+            else
+                ProcessRun();
+        }
         else
             _movementDirection.x = 0;
 
@@ -329,20 +344,4 @@ public class PlayerController : MonoBehaviour
     }
 
     #endregion
-
-    //TODO: Rethink and Reimplement 
-    public void UpdateShapePushStatus(Transform shape)
-    {
-        if (!_isPushingShape)
-        {
-            _isPushingShape = true;
-            _pushedShape = shape;
-        }
-    }
-
-    public void ClearShapePushStatus()
-    {
-        _isPushingShape = false;
-        _pushedShape = null;
-    }
 }

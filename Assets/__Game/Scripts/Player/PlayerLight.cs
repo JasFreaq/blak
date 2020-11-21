@@ -24,8 +24,7 @@ public class PlayerLight : MonoBehaviour
     float _lightRadius = 0f;
     int _shapesInWorld = 0;
 
-    public float LightRadius { get { return _lightRadius; } }
-    public int LightLevel { get { return _lightLevel; } set { _lightLevel = value; } }
+    public bool IsTimeStopped { get { return _timeStopped; } }
 
 
     private void Awake()
@@ -39,10 +38,10 @@ public class PlayerLight : MonoBehaviour
     
     private void Update()
     {
-        _sphereGizmoDrawer.radius = LightRadius;
+        _sphereGizmoDrawer.radius = _lightRadius;
 
         Vector3 worldPos = GetMousePointerToWorldPos();
-        if (Vector2.Distance(worldPos, transform.position) - LightRadius <= Mathf.Epsilon)
+        if (Vector2.Distance(worldPos, transform.position) - _lightRadius <= Mathf.Epsilon)
         {
             _shapeFormingMarker.position = new Vector3(worldPos.x, worldPos.y, -2);
         }
@@ -113,7 +112,7 @@ public class PlayerLight : MonoBehaviour
         if (shape && _shapeFormingMarker && canForm)
         {
             Vector3 worldPosition = GetMousePointerToWorldPos();
-            if (Vector2.Distance(worldPosition, transform.position) - LightRadius <= Mathf.Epsilon)
+            if (Vector2.Distance(worldPosition, transform.position) - _lightRadius <= Mathf.Epsilon)
             {
                 shape.transform.position = new Vector3(_shapeFormingMarker.position.x, _shapeFormingMarker.position.y, 0);
                 shape.transform.rotation = Quaternion.identity;
@@ -129,7 +128,7 @@ public class PlayerLight : MonoBehaviour
     public void AbsorbShape()
     {
         Vector3 worldPosition = GetMousePointerToWorldPos();
-        if (Vector2.Distance(worldPosition, transform.position) - LightRadius <= Mathf.Epsilon)
+        if (Vector2.Distance(worldPosition, transform.position) - _lightRadius <= Mathf.Epsilon)
         {
             LayerMask mask = LayerMask.GetMask("Shapes");
             RaycastHit2D hit2D = Physics2D.Raycast(worldPosition, Camera.main.transform.forward, 0f, mask);

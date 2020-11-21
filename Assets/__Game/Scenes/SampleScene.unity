@@ -130,10 +130,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 265863429}
+  - component: {fileID: 265863430}
   - component: {fileID: 265863428}
   - component: {fileID: 265863427}
   - component: {fileID: 265863426}
-  - component: {fileID: 265863430}
   - component: {fileID: 265863431}
   m_Layer: 8
   m_Name: Player
@@ -270,6 +270,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _maxRunSpeed: 14
+  _walkSpeed: 6
   _runAccelerationCurve:
     serializedVersion: 2
     m_Curve:
