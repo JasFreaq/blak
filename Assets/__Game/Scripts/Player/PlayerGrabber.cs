@@ -34,12 +34,15 @@ public class PlayerGrabber : MonoBehaviour
             _pusher.SetActive(false);
 
             FixedJoint2D fixedJoint2D = PlayerShapesPool.Instance.GetShape(_grabbedShape.GetInstanceID()).FixedJoint;
-            fixedJoint2D.connectedBody = _rigidbody2D;
-            float x = _grabbedShape.position.x - transform.position.x;
-            float y = _grabbedShape.position.y - transform.position.y;
+            if (fixedJoint2D)
+            {
+                fixedJoint2D.connectedBody = _rigidbody2D;
+                float x = _grabbedShape.position.x - transform.position.x;
+                float y = _grabbedShape.position.y - transform.position.y;
 
-            fixedJoint2D.connectedAnchor = new Vector2(x, y);
-            fixedJoint2D.enabled = true;
+                fixedJoint2D.connectedAnchor = new Vector2(x, y);
+                fixedJoint2D.enabled = true;
+            }
         }
     }
 

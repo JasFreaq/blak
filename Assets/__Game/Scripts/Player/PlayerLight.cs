@@ -26,6 +26,11 @@ public class PlayerLight : MonoBehaviour
 
     public bool IsTimeStopped { get { return _timeStopped; } }
 
+    private void OnEnable()
+    {
+        PlayerEventsHandler.RegisterOnShapeForm(FormedShape);
+        PlayerEventsHandler.RegisterOnShapeAbsorb(AbsorbedShape);
+    }
 
     private void Awake()
     {
@@ -58,7 +63,7 @@ public class PlayerLight : MonoBehaviour
                 Time.timeScale = 0;
                 _timeStopped = true;
             }
-            PlayerEventsHandler.InvokeOnToggleTimeStop(_timeStopped);
+            PlayerEventsHandler.InvokeOnTimeStop();
         }
 
         if (_timeStopped)
@@ -74,13 +79,31 @@ public class PlayerLight : MonoBehaviour
         }
     }
 
+    private void OnDisable()
+    {
+        PlayerEventsHandler.DeregisterOnShapeForm(FormedShape);
+        PlayerEventsHandler.DeregisterOnShapeAbsorb(AbsorbedShape);
+    }
+
     #region Light Collision Handling
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.tag == "Light Replenish")
+        {
+            if (_lightLevel < MAX_LIGHT_LIMIT)
+            {
+                _lightLevel++;
+                Destroy(collision.gameObject);
+            }
+        }
+    }
 
     private void OnTriggerStay2D(Collider2D collision)
     {
         if (collision.gameObject.tag == "Detector Door")
         {
-            //collision.GetComponent<DetectorDoor>().Open(_player.LightLevel);
+            collision.GetComponent<ShadeDoor>().Open(_lightLevel);
         }
     }
 
@@ -117,12 +140,15 @@ public class PlayerLight : MonoBehaviour
                 shape.transform.position = new Vector3(_shapeFormingMarker.position.x, _shapeFormingMarker.position.y, 0);
                 shape.transform.rotation = Quaternion.identity;
                 shape.SetActive(true);
-
-                _lightLevel--;
-                _shapesInWorld++;
-                AdjustLightRadius();
             }
         }
+    }
+
+    private void FormedShape()
+    {
+        _lightLevel--;
+        _shapesInWorld++;
+        AdjustLightRadius();
     }
 
     public void AbsorbShape()
@@ -135,13 +161,16 @@ public class PlayerLight : MonoBehaviour
 
             if (hit2D)
             {
-                _lightLevel++;
-                _shapesInWorld--;
-                AdjustLightRadius();
-
                 hit2D.transform.gameObject.SetActive(false);
             }
         }
+    }
+
+    private void AbsorbedShape()
+    {
+        _lightLevel++;
+        _shapesInWorld--;
+        AdjustLightRadius();
     }
 
     bool CheckBoxCollision()

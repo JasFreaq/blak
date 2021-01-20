@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - Box
+  - Detector Door
+  - Light Replenish
   layers:
   - Default
   - TransparentFX
