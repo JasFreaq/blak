@@ -11,7 +11,7 @@ public class VoidDoor : VoidWeak
     {
         for (int i = 0; i < _shapes.Count; i++)
         {
-            Destroy(_shapes[i].gameObject);
+            _shapes[i].gameObject.SetActive(false);
             _shapesAbsorbedCount++;
 
             if (_shapesAbsorbedCount >= _powerToOpen)

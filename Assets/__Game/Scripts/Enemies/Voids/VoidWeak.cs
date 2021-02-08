@@ -62,7 +62,7 @@ public class VoidWeak : MonoBehaviour
     {
         for (int i = 0; i < _shapes.Count; i++)
         {
-            Destroy(_shapes[i].gameObject);
+            _shapes[i].gameObject.SetActive(false);
         }
 
         _shapes.Clear();

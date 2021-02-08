@@ -10,18 +10,8 @@ public class Shape : MonoBehaviour
     private Rigidbody2D _rigidbody2D = null;
     private FixedJoint2D _fixedJoint = null;
     private bool _canMove = true;
-
-
-    public FixedJoint2D FixedJoint
-    {
-        get
-        {
-            if (_canMove)
-                return _fixedJoint;
-
-            return null;
-        }
-    }
+    
+    public FixedJoint2D FixedJoint { get { return _fixedJoint; } }
 
     protected virtual void Awake()
     {

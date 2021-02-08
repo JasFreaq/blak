@@ -336,11 +336,13 @@ public class PlayerController : MonoBehaviour
         _movementDirection.y = _powerJumpHeight;
         Time.timeScale = _powerJumpIncreasedTimeScale;
         _isPowerJumping = true;
+        _playerLight.CanTimeStop = false;
 
         yield return new WaitForSecondsRealtime(_powerJumpResetTimeScaleTime);
 
         Time.timeScale = 1f;
         _isPowerJumping = false;
+        _playerLight.CanTimeStop = true;
     }
 
     #endregion

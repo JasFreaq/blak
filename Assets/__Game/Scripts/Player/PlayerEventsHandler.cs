@@ -44,8 +44,8 @@ public static class PlayerEventsHandler
 
     #region Shape Formation
 
-    public static Action _onShapeForm;
-    public static Action _onShapeAbsorb;
+    static Action _onShapeForm;
+    static Action _onShapeAbsorb;
 
     static public void RegisterOnShapeForm(Action action)
     {

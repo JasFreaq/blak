@@ -17,6 +17,11 @@ public class PlayerGrabber : MonoBehaviour
         _rigidbody2D = GetComponent<Rigidbody2D>();
     }
 
+    void OnEnable()
+    {
+        PlayerEventsHandler.RegisterOnShapeAbsorb(Ungrab);
+    }
+
     private void Update()
     {
         _triedGrabbing = Input.GetButtonDown("Grab");
@@ -25,7 +30,12 @@ public class PlayerGrabber : MonoBehaviour
             Ungrab();
         }
     }
-    
+
+    void OnDisable()
+    {
+        PlayerEventsHandler.DeregisterOnShapeAbsorb(Ungrab);
+    }
+
     private void OnTriggerStay2D(Collider2D collision)
     {
         if (_triedGrabbing && !_grabbedShape && collision)

@@ -9,9 +9,15 @@ public class VoidStrong : VoidWeak
         base.OnTriggerEnter2D(collision);
 
         Shape shape = PlayerShapesPool.Instance.GetShape(collision.transform.GetInstanceID());
-        if (shape) 
-            shape.DisableMovement();
+        if (shape)
+            StartCoroutine(ShapeDisableRoutine(shape));
     }
 
     protected override void OnTriggerExit2D(Collider2D collision) { }
+
+    IEnumerator ShapeDisableRoutine(Shape shape)
+    {
+        yield return new WaitForSeconds(0.1f);
+        shape.DisableMovement();
+    }
 }

@@ -21,10 +21,12 @@ public class PlayerLight : MonoBehaviour
     ShapeType _currentShape = ShapeType.None;
 
     bool _timeStopped = false;
+    bool _canTimeStop = true;
     float _lightRadius = 0f;
     int _shapesInWorld = 0;
 
     public bool IsTimeStopped { get { return _timeStopped; } }
+    public bool CanTimeStop { set { _canTimeStop = value; } }
 
     private void OnEnable()
     {
@@ -51,7 +53,7 @@ public class PlayerLight : MonoBehaviour
             _shapeFormingMarker.position = new Vector3(worldPos.x, worldPos.y, -2);
         }
 
-        if (Input.GetButtonDown("Toggle Time Stop"))
+        if (Input.GetButtonDown("Toggle Time Stop") && _canTimeStop)
         {
             if (_timeStopped)
             {
