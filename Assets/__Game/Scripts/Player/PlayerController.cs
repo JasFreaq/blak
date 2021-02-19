@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Prime31;
 using UnityEditor;
-using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {

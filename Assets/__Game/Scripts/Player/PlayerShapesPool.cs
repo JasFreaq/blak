@@ -30,7 +30,9 @@ public class PlayerShapesPool : MonoBehaviour
 
     Vector2 _boxSize = Vector2.zero;
     float _balloonRadius = 0f;
-    
+
+    private bool _initialized = false;
+
     public Vector2 BoxSize { get { return _boxSize; } }
     public float BalloonRadius { get { return _balloonRadius; } }
 
@@ -68,14 +70,22 @@ public class PlayerShapesPool : MonoBehaviour
         }
     }
 
-    private void Start()
+    public bool Initialize()
     {
-        if (_boxPrefab)
-            SetupBoxPool();
-        if (_balloonPrefab)
-            SetupBalloonPool();
-        if (_prismPrefab)
-            SetupPrismPool();
+        if (!_initialized)
+        {
+            if (_boxPrefab)
+                SetupBoxPool();
+            if (_balloonPrefab)
+                SetupBalloonPool();
+            if (_prismPrefab)
+                SetupPrismPool();
+
+            _initialized = true;
+            return true;
+        }
+
+        return false;
     }
 
     private void SetupBoxPool()

@@ -9,6 +9,8 @@ public class Shape : MonoBehaviour
 
     private Rigidbody2D _rigidbody2D = null;
     private FixedJoint2D _fixedJoint = null;
+
+    private int _integrity = 3;
     private bool _canMove = true;
     
     public FixedJoint2D FixedJoint { get { return _fixedJoint; } }
@@ -22,8 +24,14 @@ public class Shape : MonoBehaviour
 
     private void OnEnable()
     {
-        PlayerEventsHandler.InvokeOnShapeForm();
+        PlayerEventsHandler.RegisterOnTimeStop(ReduceIntegrity);
         EnableMovement();
+
+        if (_integrity == 0)
+        {
+            _integrity = 3;
+            GetComponent<SpriteRenderer>().color = Color.white;
+        }
     }
 
 
@@ -42,6 +50,7 @@ public class Shape : MonoBehaviour
     private void OnDisable()
     {
         PlayerEventsHandler.InvokeOnShapeAbsorb();
+        PlayerEventsHandler.DeregisterOnTimeStop(ReduceIntegrity);
     }
 
     void EnableMovement()
@@ -54,5 +63,22 @@ public class Shape : MonoBehaviour
     {
         _canMove = false;
         _rigidbody2D.constraints = RigidbodyConstraints2D.FreezeAll;
+    }
+
+    void ReduceIntegrity()
+    {
+        _integrity--;
+        if (_integrity == 2)
+        {
+            GetComponent<SpriteRenderer>().color = Color.yellow;
+        }
+        else if (_integrity == 1)
+        {
+            GetComponent<SpriteRenderer>().color = Color.red;
+        }
+        else if (_integrity == 0)
+        {
+            gameObject.SetActive(false);
+        }
     }
 }

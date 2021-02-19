@@ -22,6 +22,7 @@ public class PlayerLight : MonoBehaviour
 
     bool _timeStopped = false;
     bool _canTimeStop = true;
+    private bool _shapesInitialized = false;
     float _lightRadius = 0f;
     int _shapesInWorld = 0;
 
@@ -30,7 +31,6 @@ public class PlayerLight : MonoBehaviour
 
     private void OnEnable()
     {
-        PlayerEventsHandler.RegisterOnShapeForm(FormedShape);
         PlayerEventsHandler.RegisterOnShapeAbsorb(AbsorbedShape);
     }
 
@@ -42,7 +42,12 @@ public class PlayerLight : MonoBehaviour
         _lightRadius = _lightRadii[0];
         _currentShape = ShapeType.Square;
     }
-    
+
+    void Start()
+    {
+        _shapesInitialized = PlayerShapesPool.Instance.Initialize();
+    }
+
     private void Update()
     {
         _sphereGizmoDrawer.radius = _lightRadius;
@@ -59,13 +64,14 @@ public class PlayerLight : MonoBehaviour
             {
                 Time.timeScale = 1;
                 _timeStopped = false;
+                PlayerEventsHandler.InvokeOnTimeResume();
             }
             else
             {
                 Time.timeScale = 0;
                 _timeStopped = true;
+                PlayerEventsHandler.InvokeOnTimeStop();
             }
-            PlayerEventsHandler.InvokeOnTimeStop();
         }
 
         if (_timeStopped)
@@ -83,7 +89,6 @@ public class PlayerLight : MonoBehaviour
 
     private void OnDisable()
     {
-        PlayerEventsHandler.DeregisterOnShapeForm(FormedShape);
         PlayerEventsHandler.DeregisterOnShapeAbsorb(AbsorbedShape);
     }
 
@@ -142,17 +147,14 @@ public class PlayerLight : MonoBehaviour
                 shape.transform.position = new Vector3(_shapeFormingMarker.position.x, _shapeFormingMarker.position.y, 0);
                 shape.transform.rotation = Quaternion.identity;
                 shape.SetActive(true);
+
+                _lightLevel--;
+                _shapesInWorld++;
+                AdjustLightRadius();
             }
         }
     }
-
-    private void FormedShape()
-    {
-        _lightLevel--;
-        _shapesInWorld++;
-        AdjustLightRadius();
-    }
-
+    
     public void AbsorbShape()
     {
         Vector3 worldPosition = GetMousePointerToWorldPos();
@@ -163,6 +165,7 @@ public class PlayerLight : MonoBehaviour
 
             if (hit2D)
             {
+                _lightLevel++;
                 hit2D.transform.gameObject.SetActive(false);
             }
         }
@@ -170,9 +173,11 @@ public class PlayerLight : MonoBehaviour
 
     private void AbsorbedShape()
     {
-        _lightLevel++;
-        _shapesInWorld--;
-        AdjustLightRadius();
+        if (_shapesInitialized) 
+        {
+            _shapesInWorld--;
+            AdjustLightRadius();
+        }
     }
 
     bool CheckBoxCollision()
